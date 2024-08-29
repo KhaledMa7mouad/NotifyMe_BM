@@ -1,10 +1,14 @@
 package com.example.datetimenotificationapp_bm
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -109,6 +113,7 @@ fun DateTime(modifier: Modifier = Modifier) {
                 "Notification Schudeled",
                 "Notification for $dateBtn at $timeBtn",
             )
+            schudleNotification(hour, minute, dateMillis, context)
         }) {
             Text(text = "Send notification")
         }
@@ -161,16 +166,17 @@ private fun DateTimePreview() {
     DateTime()
 }
 
-private fun createNotificationChannel(context: Context){
+private fun createNotificationChannel(context: Context) {
     val name = "Datetime Channel "
-    val importance  = NotificationManager.IMPORTANCE_DEFAULT
-    val channel = NotificationChannel("1", name , importance)
+    val importance = NotificationManager.IMPORTANCE_DEFAULT
+    val channel = NotificationChannel("1", name, importance)
     channel.description = "Datetime scheduled notification"
 
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     manager.createNotificationChannel(channel)
 
 }
+
 fun sendNotification(context: Context, title: String, text: String) {
 
     val builder = Notification.Builder(context, "1")
@@ -180,5 +186,31 @@ fun sendNotification(context: Context, title: String, text: String) {
         .setSmallIcon(R.drawable.ic_notifcation)
 
     NotificationManagerCompat.from(context).notify(99, builder.build())
+}
+
+fun schudleNotification(hour: Int, minute: Int, dateMillis: Long, context: Context) {
+    val i = Intent(context, NotificationReceiver::class.java)
+    i.putExtra("title", "Notification Schudeled")
+    i.putExtra("text", "Notification for $dateMillis at $hour:$minute")
+    val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        25,
+        i,
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+    )
+    val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    try {
+        manager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            dateMillis + ((hour - 3) * 3600 * 1000) + (minute * 60 * 1000),
+            pendingIntent
+        )
+    } catch (e: SecurityException) {
+
+        Log.d("trace", "Error: ${e.message} ")
+
+    }
+
 
 }
+
